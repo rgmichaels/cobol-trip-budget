@@ -21,6 +21,14 @@ This repo exists to demonstrate:
 
 ## Build and run
 
-```bash
+###bash
+cobc -x -free src/trip_budget.cob -o trip_budget
+./trip_budget
+
+### Run with file input
+
+Edit `data/expenses.csv`, then:
+
+###bash
 cobc -x -free src/trip_budget.cob -o trip_budget
 ./trip_budget
