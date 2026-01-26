@@ -34,11 +34,21 @@
 
        01 WS-AMOUNT-NUMVAL            PIC 9(7)V99 VALUE 0.
 
-       01 WS-DISPLAY-CAT              PIC X(30).
        01 WS-DISPLAY-AMT              PIC Z(6)9.99.
        01 WS-DISPLAY-TOTAL            PIC Z(7)9.99.
        01 WS-DISPLAY-AVG              PIC Z(7)9.99.
        01 WS-DISPLAY-MAX              PIC Z(6)9.99.
+
+       01 CAT-MAX                     PIC 9(2) VALUE 20.
+       01 CAT-COUNT                   PIC 9(2) VALUE 0.
+
+       01 CAT-TABLE.
+          05 CAT-ENTRY OCCURS 20 TIMES.
+             10 CAT-NAME              PIC X(30) VALUE SPACES.
+             10 CAT-SUM               PIC 9(7)V99 VALUE 0.
+
+       01 WS-CAT-IDX                  PIC 9(2) VALUE 1.
+       01 WS-FOUND-IDX                PIC 9(2) VALUE 0.
 
        PROCEDURE DIVISION.
        MAIN-PARA.
@@ -77,6 +87,9 @@
            DISPLAY "Avg            : $" WS-DISPLAY-AVG.
            DISPLAY "Max            : $" WS-DISPLAY-MAX.
            DISPLAY "-------------------------------".
+
+           PERFORM PRINT-CATEGORY-REPORT
+
            STOP RUN.
 
        PROCESS-LINE.
@@ -102,7 +115,8 @@
            *> Basic validation: must have both fields
            IF WS-CATEGORY = SPACES OR WS-AMOUNT-TEXT = SPACES
                ADD 1 TO WS-BAD-COUNT
-               DISPLAY "WARN line " WS-LINE-NUM ": bad format -> " FUNCTION TRIM(EXPENSE-LINE)
+               DISPLAY "WARN line " WS-LINE-NUM ": bad format -> "
+                       FUNCTION TRIM(EXPENSE-LINE)
                EXIT PARAGRAPH
            END-IF
 
@@ -112,7 +126,8 @@
            *> Reject non-positive or suspicious values
            IF WS-AMOUNT-NUMVAL <= 0
                ADD 1 TO WS-BAD-COUNT
-               DISPLAY "WARN line " WS-LINE-NUM ": bad amount -> " FUNCTION TRIM(EXPENSE-LINE)
+               DISPLAY "WARN line " WS-LINE-NUM ": bad amount -> "
+                       FUNCTION TRIM(EXPENSE-LINE)
                EXIT PARAGRAPH
            END-IF
 
@@ -125,7 +140,60 @@
                MOVE WS-AMOUNT TO MAX-AMOUNT
            END-IF
 
-           *> Optional: show each accepted line nicely
-           MOVE WS-CATEGORY TO WS-DISPLAY-CAT
-           MOVE WS-AMOUNT   TO WS-DISPLAY-AMT
-           DISPLAY FUNCTION TRIM(WS-DISPLAY-CAT) ": $" WS-DISPLAY-AMT.
+           PERFORM UPDATE-CATEGORY-TOTAL
+
+           *> Optional: echo accepted line
+           MOVE WS-AMOUNT TO WS-DISPLAY-AMT
+           DISPLAY FUNCTION TRIM(WS-CATEGORY) ": $" WS-DISPLAY-AMT.
+
+       UPDATE-CATEGORY-TOTAL.
+           MOVE 0 TO WS-FOUND-IDX
+
+           *> Find existing category
+           IF CAT-COUNT > 0
+               MOVE 1 TO WS-CAT-IDX
+               PERFORM UNTIL WS-CAT-IDX > CAT-COUNT OR WS-FOUND-IDX > 0
+                   IF FUNCTION TRIM(CAT-NAME(WS-CAT-IDX))
+                      = FUNCTION TRIM(WS-CATEGORY)
+                       MOVE WS-CAT-IDX TO WS-FOUND-IDX
+                   END-IF
+                   ADD 1 TO WS-CAT-IDX
+               END-PERFORM
+           END-IF
+
+           *> If not found, add new category
+           IF WS-FOUND-IDX = 0
+               IF CAT-COUNT < CAT-MAX
+                   ADD 1 TO CAT-COUNT
+                   MOVE WS-CATEGORY TO CAT-NAME(CAT-COUNT)
+                   MOVE CAT-COUNT TO WS-FOUND-IDX
+               ELSE
+                   ADD 1 TO WS-BAD-COUNT
+                   DISPLAY "WARN: category table full, skipping -> "
+                           FUNCTION TRIM(WS-CATEGORY)
+                   EXIT PARAGRAPH
+               END-IF
+           END-IF
+
+           *> Add amount to category sum
+           ADD WS-AMOUNT TO CAT-SUM(WS-FOUND-IDX).
+
+       PRINT-CATEGORY-REPORT.
+           DISPLAY " ".
+           DISPLAY "Category breakdown:".
+           DISPLAY "-------------------------------".
+
+           IF CAT-COUNT = 0
+               DISPLAY "(No categorized expenses)"
+               EXIT PARAGRAPH
+           END-IF
+
+           MOVE 1 TO WS-CAT-IDX
+           PERFORM UNTIL WS-CAT-IDX > CAT-COUNT
+               MOVE CAT-SUM(WS-CAT-IDX) TO WS-DISPLAY-TOTAL
+               DISPLAY FUNCTION TRIM(CAT-NAME(WS-CAT-IDX)) ": $"
+                       WS-DISPLAY-TOTAL
+               ADD 1 TO WS-CAT-IDX
+           END-PERFORM
+
+           DISPLAY "-------------------------------".
