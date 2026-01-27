@@ -4,8 +4,10 @@
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT EXPENSE-FILE ASSIGN TO "data/expenses.csv"
-               ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT EXPENSE-FILE
+               ASSIGN TO DYNAMIC WS-INPUT-FILE
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-EXPENSE-STATUS.
 
        DATA DIVISION.
        FILE SECTION.
@@ -15,6 +17,10 @@
        WORKING-STORAGE SECTION.
        01 TRIP-NAME                   PIC X(30) VALUE "New England Sprint Loop".
        01 RIDER-NAME                  PIC X(20) VALUE "Rob".
+
+       01 WS-INPUT-FILE               PIC X(256) VALUE SPACES.
+       01 WS-CMDLINE                  PIC X(256) VALUE SPACES.
+       01 WS-EXPENSE-STATUS           PIC XX     VALUE "00".
 
        01 WS-EOF                      PIC X VALUE 'N'.
           88 EOF                      VALUE 'Y'.
@@ -52,15 +58,31 @@
 
        PROCEDURE DIVISION.
        MAIN-PARA.
+           *> Command-line file input (defaults to data/expenses.csv)
+           ACCEPT WS-CMDLINE FROM COMMAND-LINE
+
+           IF FUNCTION TRIM(WS-CMDLINE) = SPACES
+               MOVE "data/expenses.csv" TO WS-INPUT-FILE
+           ELSE
+               MOVE FUNCTION TRIM(WS-CMDLINE) TO WS-INPUT-FILE
+           END-IF
+
            DISPLAY "===============================".
            DISPLAY " COBOL TRIP BUDGET REPORT (FILE)".
            DISPLAY "===============================".
            DISPLAY "Trip : " FUNCTION TRIM(TRIP-NAME).
            DISPLAY "Rider: " FUNCTION TRIM(RIDER-NAME).
-           DISPLAY "File : data/expenses.csv".
+           DISPLAY "File : " FUNCTION TRIM(WS-INPUT-FILE).
            DISPLAY " ".
 
            OPEN INPUT EXPENSE-FILE
+           IF WS-EXPENSE-STATUS NOT = "00"
+               DISPLAY "ERROR: Could not open file -> "
+                       FUNCTION TRIM(WS-INPUT-FILE)
+               DISPLAY "FILE STATUS: " WS-EXPENSE-STATUS
+               STOP RUN
+           END-IF
+
            PERFORM UNTIL EOF
                READ EXPENSE-FILE
                    AT END
