@@ -19,16 +19,16 @@ This repo exists to demonstrate:
 - GnuCOBOL
 - macOS, Linux, or similar Unix environment
 
-## Build and run
-
-###bash
-cobc -x -free src/trip_budget.cob -o trip_budget
-./trip_budget
 
 ### Run with file input
+Command line input file:  expenses.csv
+    Format:  expense,amount
+        Example:
+            Gas,10.50
+
 
 Edit `data/expenses.csv`, then:
 
 ###bash
 cobc -x -free src/trip_budget.cob -o trip_budget
-./trip_budget
+ ./trip_budget data/expenses.csv
