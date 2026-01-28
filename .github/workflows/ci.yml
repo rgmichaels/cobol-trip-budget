@@ -19,10 +19,11 @@ jobs:
 
       - name: Compile
         run: |
+          set -euxo pipefail
           mkdir -p bin
-          mkdir -p bin/tripbudget
-          cobc -x -free bin/tripbudget trip_budget.cob
-
+          cobc -x -free -o bin/tripbudget trip_budget.cob
+          ls -la bin
+          
       - name: Run sample test (golden file)
         run: |
           mkdir -p out
