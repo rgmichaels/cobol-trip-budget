@@ -24,7 +24,7 @@ This repo exists to demonstrate:
 Command line input file:  expenses.csv
     Format:  expense,amount
         Example:
-            Gas,10.50
+            yyyy-mm-dd,Gas,10.50
 
 
 Edit `data/expenses.csv`, then:

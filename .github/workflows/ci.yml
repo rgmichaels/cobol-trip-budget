@@ -1,0 +1,35 @@
+name: COBOL CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GnuCOBOL
+        uses: fabasoad/setup-cobol-action@v1
+        with:
+          version: "3.2"
+
+      - name: Compile
+        run: |
+          mkdir -p bin
+          cobc -x -o bin/tripbudget trip_budget.cob
+
+      - name: Run sample test (golden file)
+        run: |
+          mkdir -p out
+          ./bin/tripbudget data/expenses.csv > out/report.txt
+          diff -u test/expected_report.txt out/report.txt
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tripbudget-report
+          path: out/report.txt
