@@ -20,6 +20,7 @@ jobs:
       - name: Compile
         run: |
           mkdir -p bin
+          mkdir -p bin/tripbudget
           cobc -x -free bin/tripbudget trip_budget.cob
 
       - name: Run sample test (golden file)
