@@ -1,3 +1,5 @@
+       >>SOURCE FORMAT FREE
+
        IDENTIFICATION DIVISION.
        PROGRAM-ID. TRIPBUDGET.
 
@@ -28,7 +30,7 @@
        01 WS-DISPLAY-MIN-DATE         PIC X(10) VALUE SPACES.
        01 WS-DISPLAY-MAX-DATE         PIC X(10) VALUE SPACES.
 
-       01 TRIP-NAME                   PIC X(30) VALUE "New England Sprint Loop".
+       01 TRIP-NAME                   PIC X(30) VALUE "NE Sprint Loop".
        01 RIDER-NAME                  PIC X(20) VALUE "Rob".
 
        01 WS-INPUT-FILE               PIC X(256) VALUE SPACES.
