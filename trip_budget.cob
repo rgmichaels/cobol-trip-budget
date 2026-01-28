@@ -15,6 +15,19 @@
        01  EXPENSE-LINE               PIC X(200).
 
        WORKING-STORAGE SECTION.
+       01 WS-DATE-TEXT                PIC X(10).
+       01 WS-DATE                     PIC X(10).
+
+       01 WS-MIN-DATE                 PIC X(10) VALUE HIGH-VALUES.
+       01 WS-MAX-DATE                 PIC X(10) VALUE LOW-VALUES.
+
+       01 WS-DATE-VALID               PIC X VALUE 'N'.
+          88 DATE-OK                  VALUE 'Y'.
+          88 DATE-BAD                 VALUE 'N'.
+
+       01 WS-DISPLAY-MIN-DATE         PIC X(10) VALUE SPACES.
+       01 WS-DISPLAY-MAX-DATE         PIC X(10) VALUE SPACES.
+
        01 TRIP-NAME                   PIC X(30) VALUE "New England Sprint Loop".
        01 RIDER-NAME                  PIC X(20) VALUE "Rob".
 
@@ -101,10 +114,23 @@
            MOVE AVG-AMOUNT   TO WS-DISPLAY-AVG
            MOVE MAX-AMOUNT   TO WS-DISPLAY-MAX
 
+           IF WS-GOOD-COUNT > 0
+               MOVE WS-MIN-DATE TO WS-DISPLAY-MIN-DATE
+               MOVE WS-MAX-DATE TO WS-DISPLAY-MAX-DATE
+           END-IF
+
            DISPLAY " ".
            DISPLAY "-------------------------------".
            DISPLAY "Items processed: " WS-GOOD-COUNT.
            DISPLAY "Bad lines      : " WS-BAD-COUNT.
+
+           IF WS-GOOD-COUNT > 0
+               DISPLAY "Dates          : " WS-DISPLAY-MIN-DATE
+                       " to " WS-DISPLAY-MAX-DATE
+           ELSE
+               DISPLAY "Dates          : (none)"
+           END-IF
+
            DISPLAY "Total          : $" WS-DISPLAY-TOTAL.
            DISPLAY "Avg            : $" WS-DISPLAY-AVG.
            DISPLAY "Max            : $" WS-DISPLAY-MAX.
@@ -122,25 +148,39 @@
                EXIT PARAGRAPH
            END-IF
 
-           *> Split "Category,Amount"
+           *> Split "YYYY-MM-DD,Category,Amount"
+           MOVE SPACES TO WS-DATE-TEXT
            MOVE SPACES TO WS-CATEGORY
            MOVE SPACES TO WS-AMOUNT-TEXT
 
            UNSTRING EXPENSE-LINE
                DELIMITED BY ","
-               INTO WS-CATEGORY WS-AMOUNT-TEXT
+               INTO WS-DATE-TEXT WS-CATEGORY WS-AMOUNT-TEXT
            END-UNSTRING
 
+           MOVE FUNCTION TRIM(WS-DATE-TEXT)   TO WS-DATE-TEXT
            MOVE FUNCTION TRIM(WS-CATEGORY)    TO WS-CATEGORY
            MOVE FUNCTION TRIM(WS-AMOUNT-TEXT) TO WS-AMOUNT-TEXT
 
-           *> Basic validation: must have both fields
-           IF WS-CATEGORY = SPACES OR WS-AMOUNT-TEXT = SPACES
+           *> Basic validation: must have all 3 fields
+           IF WS-DATE-TEXT = SPACES OR WS-CATEGORY = SPACES
+              OR WS-AMOUNT-TEXT = SPACES
                ADD 1 TO WS-BAD-COUNT
                DISPLAY "WARN line " WS-LINE-NUM ": bad format -> "
                        FUNCTION TRIM(EXPENSE-LINE)
                EXIT PARAGRAPH
            END-IF
+
+           *> Validate date (structure only: YYYY-MM-DD)
+           PERFORM VALIDATE-DATE
+           IF DATE-BAD
+               ADD 1 TO WS-BAD-COUNT
+               DISPLAY "WARN line " WS-LINE-NUM ": bad date -> "
+                       FUNCTION TRIM(EXPENSE-LINE)
+               EXIT PARAGRAPH
+           END-IF
+
+           MOVE WS-DATE-TEXT TO WS-DATE
 
            *> Convert text amount to numeric (handles "10.50")
            COMPUTE WS-AMOUNT-NUMVAL = FUNCTION NUMVAL(WS-AMOUNT-TEXT)
@@ -155,6 +195,7 @@
 
            MOVE WS-AMOUNT-NUMVAL TO WS-AMOUNT
 
+           *> At this point, the record is accepted
            ADD 1 TO WS-GOOD-COUNT
            ADD WS-AMOUNT TO TOTAL-AMOUNT
 
@@ -162,11 +203,46 @@
                MOVE WS-AMOUNT TO MAX-AMOUNT
            END-IF
 
+           *> Track min/max date (ISO string compare works)
+           IF WS-DATE < WS-MIN-DATE
+               MOVE WS-DATE TO WS-MIN-DATE
+           END-IF
+           IF WS-DATE > WS-MAX-DATE
+               MOVE WS-DATE TO WS-MAX-DATE
+           END-IF
+
            PERFORM UPDATE-CATEGORY-TOTAL
 
-           *> Optional: echo accepted line
+           *> Echo accepted line (with date)
            MOVE WS-AMOUNT TO WS-DISPLAY-AMT
-           DISPLAY FUNCTION TRIM(WS-CATEGORY) ": $" WS-DISPLAY-AMT.
+           DISPLAY WS-DATE "  " FUNCTION TRIM(WS-CATEGORY)
+                   ": $" WS-DISPLAY-AMT.
+
+       VALIDATE-DATE.
+           SET DATE-BAD TO TRUE
+
+           *> Must be YYYY-MM-DD (length 10 after trim)
+           IF FUNCTION LENGTH(FUNCTION TRIM(WS-DATE-TEXT)) NOT = 10
+               EXIT PARAGRAPH
+           END-IF
+
+           *> Dashes in the right places
+           IF WS-DATE-TEXT(5:1) NOT = "-" OR WS-DATE-TEXT(8:1) NOT = "-"
+               EXIT PARAGRAPH
+           END-IF
+
+           *> All other characters must be numeric
+           IF WS-DATE-TEXT(1:4) IS NOT NUMERIC
+               EXIT PARAGRAPH
+           END-IF
+           IF WS-DATE-TEXT(6:2) IS NOT NUMERIC
+               EXIT PARAGRAPH
+           END-IF
+           IF WS-DATE-TEXT(9:2) IS NOT NUMERIC
+               EXIT PARAGRAPH
+           END-IF
+
+           SET DATE-OK TO TRUE.
 
        UPDATE-CATEGORY-TOTAL.
            MOVE 0 TO WS-FOUND-IDX
