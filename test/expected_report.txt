@@ -1,7 +1,7 @@
 ===============================
  COBOL TRIP BUDGET REPORT (FILE)
 ===============================
-Trip : New England Sprint Loop
+Trip : NE Sprint Loop
 Rider: Rob
 File : data/expenses.csv
  
