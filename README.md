@@ -30,5 +30,9 @@ Command line input file:  expenses.csv
 Edit `data/expenses.csv`, then:
 
 ###bash
-cobc -x -free src/trip_budget.cob -o trip_budget
+cobc -x -free trip_budget.cob -o trip_budget
  ./trip_budget data/expenses.csv
+
+Regenerate the sample output file:
+ ./trip_budget data/expenses.csv > data/trip_report.txt
+ 
