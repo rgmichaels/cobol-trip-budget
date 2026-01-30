@@ -1,0 +1,15 @@
+===============================
+ COBOL TRIP BUDGET REPORT (FILE)
+===============================
+Trip : NE Sprint Loop                
+Rider: Rob                 
+File : data/expenses.csv                                                                                                                                                                                                                                               
+ 
+-------------------------------
+Total Trip Cost: $      446.25
+-------------------------------
+ 
+Records processed: 00007
+Valid records   : 00007
+Invalid records : 00000
+===============================
