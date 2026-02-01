@@ -72,6 +72,12 @@ MAIN.
     .
 
 PROCESS-LINE.
+    *> Skip blank/whitespace-only lines (count as invalid)
+    IF FUNCTION TRIM(EXPENSE-LINE) = SPACES
+        ADD 1 TO WS-BAD-COUNT
+        EXIT PARAGRAPH
+    END-IF
+
     UNSTRING EXPENSE-LINE
         DELIMITED BY ","
         INTO WS-DATE

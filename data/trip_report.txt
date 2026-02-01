@@ -6,10 +6,10 @@ Rider: Rob
 File : data/expenses.csv                                                                                                                                                                                                                                               
  
 -------------------------------
-Total Trip Cost: $      446.25
+Total Trip Cost: $      295.50
 -------------------------------
  
 Records processed: 00007
-Valid records   : 00007
-Invalid records : 00000
+Valid records   : 00006
+Invalid records : 00001
 ===============================
