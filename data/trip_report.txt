@@ -5,11 +5,17 @@ Trip : NE Sprint Loop
 Rider: Rob                 
 File : data/expenses.csv                                                                                                                                                                                                                                               
  
+2026-01-15  Gas                             $   10.50
+2026-01-15  Tolls                           $   22.00
+2026-01-16  Coffee                          $    7.25
+2026-01-17  Dinner                          $   45.00
+2026-01-12  Lodging                         $   60.00
+2026-01-16  Maintenance                     $  150.75
 -------------------------------
 Total Trip Cost: $      295.50
 -------------------------------
  
-Records processed: 00007
+Records processed: 00006
 Valid records   : 00006
-Invalid records : 00001
+Invalid records : 00000
 ===============================
