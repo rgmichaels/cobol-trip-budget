@@ -28,7 +28,8 @@
        01  WS-GOOD-COUNT              PIC 9(5) VALUE 0.
        01  WS-BAD-COUNT               PIC 9(5) VALUE 0.
 
-       01  WS-AMOUNT                  PIC 9(5)V99.
+       *> Signed so we can parse negatives and reject them explicitly
+       01  WS-AMOUNT                  PIC S9(5)V99.
        01  WS-AMOUNT-DISPLAY          PIC Z,ZZ9.99.
 
        01  WS-TOTAL-AMOUNT            PIC 9(7)V99 VALUE 0.
@@ -72,7 +73,7 @@
            .
 
        PROCESS-LINE.
-           *> Ignore blank/whitespace-only lines (do not count as good)
+           *> Ignore blank/whitespace-only lines (count as invalid)
            IF FUNCTION TRIM(EXPENSE-LINE) = SPACES
                ADD 1 TO WS-BAD-COUNT
                EXIT PARAGRAPH
@@ -87,6 +88,12 @@
                    ADD 1 TO WS-BAD-COUNT
                    EXIT PARAGRAPH
            END-UNSTRING
+
+           *> Validation: reject zero or negative amounts
+           IF WS-AMOUNT <= 0
+               ADD 1 TO WS-BAD-COUNT
+               EXIT PARAGRAPH
+           END-IF
 
            *> Print the line item
            MOVE WS-AMOUNT TO WS-AMOUNT-DISPLAY
