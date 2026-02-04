@@ -40,6 +40,17 @@
 
        01  WS-REPORT-LINE             PIC X(80).
 
+       01  CAT-COUNT                  PIC 9(3) VALUE 0.
+       01  CAT-TABLE.
+           05 CAT-ENTRY OCCURS 20 TIMES.
+               10 CAT-NAME            PIC X(30) VALUE SPACES.
+               10 CAT-TOTAL           PIC 9(7)V99 VALUE 0.
+       01  WS-CAT-FOUND               PIC X VALUE 'N'.
+           88 CAT-FOUND               VALUE 'Y'.
+           88 CAT-NOT-FOUND           VALUE 'N'.
+       01  WS-INDEX                   PIC 9(3) VALUE 0.
+       01  WS-CAT-TOTAL-DISPLAY       PIC Z,ZZZ,ZZ9.99.
+
        PROCEDURE DIVISION.
        MAIN.
            ACCEPT WS-FILENAME FROM ARGUMENT-VALUE
@@ -66,6 +77,7 @@
            END-PERFORM
 
            PERFORM PRINT-TOTALS
+           PERFORM PRINT-CATEGORY-SUMMARY
            PERFORM PRINT-FOOTER
 
            CLOSE EXPENSE-FILE
@@ -95,12 +107,38 @@
                EXIT PARAGRAPH
            END-IF
 
+           MOVE FUNCTION TRIM(WS-CATEGORY) TO WS-CATEGORY
+
+           PERFORM UPDATE-CATEGORY-TOTAL
+
            *> Print the line item
            MOVE WS-AMOUNT TO WS-AMOUNT-DISPLAY
            DISPLAY WS-DATE "  " WS-CATEGORY "  $" WS-AMOUNT-DISPLAY
 
            ADD 1 TO WS-GOOD-COUNT
            ADD WS-AMOUNT TO WS-TOTAL-AMOUNT
+           .
+
+       UPDATE-CATEGORY-TOTAL.
+           SET CAT-NOT-FOUND TO TRUE
+           PERFORM VARYING WS-INDEX FROM 1 BY 1
+               UNTIL WS-INDEX > CAT-COUNT OR CAT-FOUND
+               IF CAT-NAME(WS-INDEX) = WS-CATEGORY
+                   ADD WS-AMOUNT TO CAT-TOTAL(WS-INDEX)
+                   SET CAT-FOUND TO TRUE
+               END-IF
+           END-PERFORM
+
+           IF CAT-NOT-FOUND
+               IF CAT-COUNT < 20
+                   ADD 1 TO CAT-COUNT
+                   MOVE WS-CATEGORY TO CAT-NAME(CAT-COUNT)
+                   ADD WS-AMOUNT TO CAT-TOTAL(CAT-COUNT)
+               ELSE
+                   DISPLAY "WARNING: Category table full, skipping "
+                       WS-CATEGORY
+               END-IF
+           END-IF
            .
 
        PRINT-HEADER.
@@ -118,6 +156,17 @@
            DISPLAY "-------------------------------"
            DISPLAY "Total Trip Cost: $" WS-TOTAL-DISPLAY
            DISPLAY "-------------------------------"
+           DISPLAY SPACE
+           .
+
+       PRINT-CATEGORY-SUMMARY.
+           DISPLAY "Category Totals:"
+           PERFORM VARYING WS-INDEX FROM 1 BY 1
+               UNTIL WS-INDEX > CAT-COUNT
+               MOVE CAT-TOTAL(WS-INDEX) TO WS-CAT-TOTAL-DISPLAY
+               DISPLAY CAT-NAME(WS-INDEX) "  $"
+                   WS-CAT-TOTAL-DISPLAY
+           END-PERFORM
            DISPLAY SPACE
            .
 
