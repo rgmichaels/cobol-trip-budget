@@ -1,4 +1,1 @@
-trip_budget
-*.o
-*.so
-*.exe
+.DS_Store

@@ -38,6 +38,10 @@
        01  WS-DATE                    PIC X(10).
        01  WS-CATEGORY                PIC X(30).
 
+       01  WS-REC-DATE                PIC X(10).
+       01  WS-REC-CATEGORY            PIC X(30).
+       01  WS-REC-AMOUNT              PIC S9(5)V99.
+
        01  WS-REPORT-LINE             PIC X(80).
 
        01  CAT-COUNT                  PIC 9(3) VALUE 0.
@@ -91,6 +95,34 @@
                EXIT PARAGRAPH
            END-IF
 
+           PERFORM POPULATE-RECORD-FROM-LINE
+           IF WS-BAD-COUNT > 0
+               EXIT PARAGRAPH
+           END-IF
+
+           *> Validation: reject zero or negative amounts
+           IF WS-REC-AMOUNT <= 0
+               ADD 1 TO WS-BAD-COUNT
+               EXIT PARAGRAPH
+           END-IF
+
+           MOVE FUNCTION TRIM(WS-REC-CATEGORY) TO WS-REC-CATEGORY
+
+           PERFORM UPDATE-CATEGORY-TOTAL
+
+           *> Print the line item
+           MOVE WS-REC-AMOUNT TO WS-AMOUNT-DISPLAY
+           DISPLAY WS-REC-DATE "  " WS-REC-CATEGORY "  $" WS-AMOUNT-DISPLAY
+
+           ADD 1 TO WS-GOOD-COUNT
+           ADD WS-REC-AMOUNT TO WS-TOTAL-AMOUNT
+           .
+
+       POPULATE-RECORD-FROM-LINE.
+           MOVE SPACES TO WS-REC-DATE
+           MOVE SPACES TO WS-REC-CATEGORY
+           MOVE 0 TO WS-REC-AMOUNT
+
            UNSTRING EXPENSE-LINE
                DELIMITED BY ","
                INTO WS-DATE
@@ -101,30 +133,17 @@
                    EXIT PARAGRAPH
            END-UNSTRING
 
-           *> Validation: reject zero or negative amounts
-           IF WS-AMOUNT <= 0
-               ADD 1 TO WS-BAD-COUNT
-               EXIT PARAGRAPH
-           END-IF
-
-           MOVE FUNCTION TRIM(WS-CATEGORY) TO WS-CATEGORY
-
-           PERFORM UPDATE-CATEGORY-TOTAL
-
-           *> Print the line item
-           MOVE WS-AMOUNT TO WS-AMOUNT-DISPLAY
-           DISPLAY WS-DATE "  " WS-CATEGORY "  $" WS-AMOUNT-DISPLAY
-
-           ADD 1 TO WS-GOOD-COUNT
-           ADD WS-AMOUNT TO WS-TOTAL-AMOUNT
+           MOVE WS-DATE TO WS-REC-DATE
+           MOVE WS-CATEGORY TO WS-REC-CATEGORY
+           MOVE WS-AMOUNT TO WS-REC-AMOUNT
            .
 
        UPDATE-CATEGORY-TOTAL.
            SET CAT-NOT-FOUND TO TRUE
            PERFORM VARYING WS-INDEX FROM 1 BY 1
                UNTIL WS-INDEX > CAT-COUNT OR CAT-FOUND
-               IF CAT-NAME(WS-INDEX) = WS-CATEGORY
-                   ADD WS-AMOUNT TO CAT-TOTAL(WS-INDEX)
+               IF CAT-NAME(WS-INDEX) = WS-REC-CATEGORY
+                   ADD WS-REC-AMOUNT TO CAT-TOTAL(WS-INDEX)
                    SET CAT-FOUND TO TRUE
                END-IF
            END-PERFORM
@@ -132,11 +151,11 @@
            IF CAT-NOT-FOUND
                IF CAT-COUNT < 20
                    ADD 1 TO CAT-COUNT
-                   MOVE WS-CATEGORY TO CAT-NAME(CAT-COUNT)
-                   ADD WS-AMOUNT TO CAT-TOTAL(CAT-COUNT)
+                   MOVE WS-REC-CATEGORY TO CAT-NAME(CAT-COUNT)
+                   ADD WS-REC-AMOUNT TO CAT-TOTAL(CAT-COUNT)
                ELSE
                    DISPLAY "WARNING: Category table full, skipping "
-                       WS-CATEGORY
+                       WS-REC-CATEGORY
                END-IF
            END-IF
            .
